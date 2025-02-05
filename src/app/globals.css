@@ -19,3 +19,9 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+label.required::after {
+  content: "*";
+  color: #f87171; /* Tailwind's red-500 color */
+  margin-left: 4px; /* Space between the label text and the asterisk */
+}
