@@ -2,37 +2,37 @@
 
 import React, { useEffect, useState } from "react";
 import { FormData, Dropdown, HttpResponse } from "../types/types";
+import { formatDateHTML, formatAmount } from "../utils/formatUtils";
+import { getEndpoint, fetchDropdownData, getEnv } from "../utils/apiUtils";
 
 interface FormProps {
-  onClose: () => void;
+  form: FormData;
+  selectedDate: Date;
+  selectedEvent?: string;
+  onError: (err: string) => void;
   onSubmit: (formData: FormData) => void;
-  formData: FormData;
 }
 
-const Form: React.FC<FormProps> = ({ onClose, onSubmit, formData }) => {
-  const [formState, setFormState] = useState<FormData>(formData);
-  const [categoryData, setCategoryData] = useState<Dropdown[]>([]);
+const Form: React.FC<FormProps> = ({
+  form,
+  selectedDate,
+  selectedEvent,
+  onError,
+  onSubmit,
+}) => {
+  const [formData, setFormData] = useState<FormData>(form);
   const [dropdownData, setDropdownData] = useState<{
     [key: string]: Dropdown[];
   }>({
     type: [],
     category: [],
   });
+  const formattedDate = formatDateHTML(selectedDate);
+  formData.date = selectedDate;
 
-  const year = formData.date.getFullYear();
-  const month = (formData.date.getMonth() + 1).toString().padStart(2, "0"); // month is 0-based
-  const day = formData.date.getDate().toString().padStart(2, "0");
-  const formattedDate = `${year}-${month}-${day}`;
-
-  // type checking
-  const isDropdownArray = (data: unknown): data is Dropdown[] => {
-    return (
-      Array.isArray(data) &&
-      data.every(
-        (item) =>
-          item && typeof item === "object" && "key" in item && "value" in item
-      )
-    );
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onSubmit(formData);
   };
 
   const handleInputChange = (
@@ -40,7 +40,7 @@ const Form: React.FC<FormProps> = ({ onClose, onSubmit, formData }) => {
   ) => {
     const { name, value } = e.target;
     const formattedValue = name === "amount" ? formatAmount(value) : value;
-    setFormState((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: formattedValue,
     }));
@@ -48,97 +48,88 @@ const Form: React.FC<FormProps> = ({ onClose, onSubmit, formData }) => {
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormState((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const formatAmount = (value: string) => {
-    // get rid of non-digit non period character
-    let cleaned = value.replace(/[^0-9.]/g, "");
-    // remove extra periods, leaving only the first one
-    const periodCount = (cleaned.match(/\./g) || []).length;
-    if (periodCount > 1) {
-      cleaned = cleaned.replace(/\./g, "");
-      cleaned =
-        cleaned.slice(0, cleaned.indexOf(".") + 1) +
-        cleaned.slice(cleaned.indexOf(".") + 1);
-    }
-    const formatted = cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return formatted;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formState);
-    onClose();
-  };
-
-  const fetchDropdownData = async (endpoint: string, dropdownKey: string) => {
-    try {
-      const res = await fetch(endpoint);
-      const resJSON: HttpResponse = await res.json();
-
-      if (!resJSON.is_error && isDropdownArray(resJSON.data)) {
-        setDropdownData((prevData) => {
-          const defaultData = {
-            ...prevData,
-            [dropdownKey]: resJSON.data as Dropdown[],
-          };
-          if (defaultData[dropdownKey].length > 0) {
-            setFormState((prevState) => ({
-              ...prevState,
-              [dropdownKey]: defaultData[dropdownKey][0].value,
-            }));
-          }
-          return defaultData;
-        });
+  const fillDropdown = (name: string, data: Dropdown[]) => {
+    setDropdownData((prevData) => {
+      const defaultData = {
+        ...prevData,
+        [name]: data,
+      };
+      if (defaultData[name].length > 0) {
+        setFormData((prevState) => ({
+          ...prevState,
+          [name]: defaultData[name][0].value,
+        }));
       }
-    } catch (error) {
-      console.error(`Failed to fetch data for ${dropdownKey}`, error);
-    }
+      return defaultData;
+    });
   };
 
-  const fetchConditionalDropdown = async (type: string) => {
-    if (type) {
-      try {
-        //TODO get from env
-        const res = await fetch(
-          `http://localhost:8083/api/v1/dropdown/${type}`
-        );
-        const resJSON: HttpResponse = await res.json();
-
-        if (!resJSON.is_error && isDropdownArray(resJSON.data)) {
-          const categories = resJSON.data as Dropdown[];
-          setCategoryData(categories);
-
-          if (categories.length > 0) {
-            setFormState((prevState) => ({
-              ...prevState,
-              category: categories[0].value,
-            }));
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to fetch category data for ${type}`, error);
-      }
-    }
-  };
-
-  // TODO get from env
+  // get dropdown - type
   useEffect(() => {
-    fetchDropdownData("http://localhost:8083/api/v1/dropdown/type", "type");
+    const controller = new AbortController();
+    const timeoutSignal = AbortSignal.timeout(
+      Number(getEnv(process.env.NEXT_PUBLIC_REQUEST_TIMEOUT))
+    );
+    const signal = AbortSignal.any([controller.signal, timeoutSignal]);
+
+    fetchDropdownData(
+      getEndpoint(process.env.NEXT_PUBLIC_ENDPOINT_DROPDOWN_TYPE),
+      signal
+    )
+      .then((response: HttpResponse) => {
+        fillDropdown("type", response.data as Dropdown[]);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          onError(err);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
+  // get dropdown - category
   useEffect(() => {
-    if (formState.type) {
-      fetchConditionalDropdown(formState.type);
+    const controller = new AbortController();
+    const timeoutSignal = AbortSignal.timeout(
+      Number(getEnv(process.env.NEXT_PUBLIC_REQUEST_TIMEOUT))
+    );
+    const signal = AbortSignal.any([controller.signal, timeoutSignal]);
+
+    if (formData.type) {
+      const category =
+        formData.type === "income"
+          ? getEndpoint(process.env.NEXT_PUBLIC_ENDPOINT_DROPDOWN_INCOME)
+          : formData.type === "expense"
+          ? getEndpoint(process.env.NEXT_PUBLIC_ENDPOINT_DROPDOWN_EXPENSE)
+          : new URL("");
+      fetchDropdownData(category, signal)
+        .then((response: HttpResponse) => {
+          console.log(formData.type);
+          fillDropdown("category", response.data as Dropdown[]);
+        })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            onError(err);
+          }
+        });
     }
-  }, [formState.type]);
+
+    return () => {
+      controller.abort();
+    };
+  }, [formData.type]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleFormSubmit} className="space-y-4">
       {/* date */}
       <div>
         <label
@@ -171,7 +162,7 @@ const Form: React.FC<FormProps> = ({ onClose, onSubmit, formData }) => {
           type="text"
           id="amount"
           name="amount"
-          value={formState.amount}
+          value={formData.amount}
           onChange={handleInputChange}
           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           placeholder="Type here..."
@@ -191,7 +182,7 @@ const Form: React.FC<FormProps> = ({ onClose, onSubmit, formData }) => {
           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           name="type"
           id="type"
-          value={formState.type}
+          value={formData.type}
           onChange={handleSelectChange}
         >
           {dropdownData.type.length > 0 ? (
@@ -218,11 +209,11 @@ const Form: React.FC<FormProps> = ({ onClose, onSubmit, formData }) => {
           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           name="category"
           id="category"
-          value={formState.category}
+          value={formData.category}
           onChange={handleSelectChange}
         >
-          {categoryData.length > 0 ? (
-            categoryData.map((category) => (
+          {dropdownData.category.length > 0 ? (
+            dropdownData.category.map((category) => (
               <option key={category.key} value={category.value}>
                 {category.value}
               </option>
@@ -245,7 +236,7 @@ const Form: React.FC<FormProps> = ({ onClose, onSubmit, formData }) => {
           type="text"
           id="description"
           name="description"
-          value={formState.description}
+          value={formData.description}
           onChange={handleInputChange}
           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           placeholder="Type here..."

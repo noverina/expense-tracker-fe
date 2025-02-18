@@ -17,3 +17,12 @@ export interface HttpResponse {
   message: string;
   data: unknown;
 }
+
+export interface Event {
+  _id: string;
+  description: string;
+  type: string;
+  category: string;
+  date: string;
+  amount: string;
+}

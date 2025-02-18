@@ -3,25 +3,262 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --white: theme("colors.white");
+  --white-50-opacity: rgba(255, 255, 255, 0.5);
+  --black: theme("colors.black");
+  --gray-200: theme("colors.gray.200");
+  --gray-700: theme("colors.gray.700");
+  --gray-900: theme("colors.gray.900");
+  --gray-900-50-opacity: rgba(31, 41, 55, 0.5);
+  --red-200: theme("colors.red.200");
+  --red-400: theme("colors.red.400");
+  --red-500: theme("colors.red.500");
+  --red-600: theme("colors.red.600");
+  --red-800: theme("colors.red.800");
+  --blue-200: theme("colors.blue.200");
+  --blue-400: theme("colors.blue.400");
+  --blue-600: theme("colors.blue.600");
+  --blue-800: theme("colors.blue.800");
+  --yellow-200: theme("colors.yellow.200");
+  --yellow-400: theme("colors.yellow.400");
+  --yellow-600: theme("colors.yellow.600");
+  --yellow-800: theme("colors.yellow.800");
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  background-color: var(--white);
+  color: var(--black);
+  transition: background-color 0.3s ease, color 0.3s ease;
   font-family: Arial, Helvetica, sans-serif;
+}
+
+html.dark body {
+  background-color: var(--gray-900);
+  color: var(--white);
+}
+
+/* 
+-----
+MODAL 
+-----
+*/
+
+.modal-container {
+  background-color: var(--white);
+  color: var(--black);
+}
+
+html.dark .modal-container {
+  background-color: var(--gray-900);
+  color: var(--white);
+}
+
+.modal-backdrop {
+  background-color: var(--gray-900-50-opacity);
+}
+
+html.dark .modal-backdrop {
+  background-color: var(--white-50-opacity);
+}
+
+.modal-header-info {
+  background-color: var(--blue-400);
+}
+
+html.dark .modal-header-info {
+  background-color: var(--blue-600);
+}
+
+.modal-header-warning {
+  background-color: var(--yellow-400);
+}
+
+html.dark .modal-header-warning {
+  background-color: var(--yellow-600);
+}
+
+.modal-header-error {
+  background-color: var(--red-400);
+}
+
+html.dark .modal-header-error {
+  background-color: var(--red-600);
+}
+
+/* 
+-----
+SCROLLBAR
+-----
+*/
+
+/* webkit */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-button {
+  width: 0px;
+  height: 0px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-200);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--gray-700);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--gray-900);
+}
+
+/* firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-200) var(--gray-700);
+}
+
+/* 
+-----
+GRID
+-----
+*/
+
+.item {
+  border-color: var(--gray-900);
+}
+
+html.dark .item {
+  border-color: var(--gray-200);
+}
+
+.item-current {
+  background-color: var(--gray-200);
+  border-color: var(--gray-900);
+}
+
+html.dark .item-current {
+  background-color: var(--gray-700);
+  border-color: var(--gray-200);
+}
+
+.expense {
+  background-color: var(--white);
+  border-color: var(--red-800);
+  transition: background-color 0.3s ease;
+  color: var(--red-800);
+}
+
+html.dark .expense {
+  background-color: var(--gray-900);
+  border-color: var(--red-200);
+  transition: background-color 0.3s ease;
+  color: var(--red-200);
+}
+
+.expense:hover {
+  background-color: var(--red-200);
+}
+
+html.dark .expense:hover {
+  background-color: var(--red-800);
+}
+
+.income {
+  background-color: var(--white);
+  border-color: var(--blue-800);
+  transition: background-color 0.3s ease;
+  color: var(--blue-800);
+}
+
+html.dark .income {
+  background-color: var(--gray-900);
+  border-color: var(--blue-200);
+  transition: background-color 0.3s ease;
+  color: var(--blue-200);
+}
+
+.income:hover {
+  background-color: var(--blue-200);
+}
+
+html.dark .income:hover {
+  background-color: var(--blue-800);
+}
+
+.weekday-header {
+  border-color: var(--gray-900);
+}
+
+html.dark .weekday-header {
+  border-color: var(--white);
+}
+
+/* 
+-----
+BUTTON
+-----
+*/
+
+.close-button {
+  background-color: var(--white);
+  color: var(--black);
+}
+
+html.dark .close-button {
+  background-color: var(--gray-900);
+  color: var(--white);
+}
+
+.bg-button {
+  background-color: var(--gray-900);
+  transition: background-color 0.3s ease;
+  color: var(--white);
+}
+
+html.dark .bg-button {
+  background-color: var(--white);
+  transition: background-color 0.3s ease;
+  color: var(--black);
+}
+
+.bg-button:hover {
+  background-color: var(--gray-700);
+  color: var(--white);
+}
+
+html.dark .bg-button:hover {
+  background-color: var(--gray-200);
+  color: var(--black);
 }
 
 label.required::after {
   content: "*";
-  color: #f87171; /* Tailwind's red-500 color */
-  margin-left: 4px; /* Space between the label text and the asterisk */
+  color: var(--red-500);
+  margin-left: 4px;
+}
+
+.spinner {
+  color: var(--gray-900);
+  fill: var(--white);
+}
+
+html.dark .spinner {
+  color: var(--white);
+  fill: var(--gray-700);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fadeIn 0.5s ease-in forwards;
 }

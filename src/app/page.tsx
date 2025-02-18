@@ -1,101 +1,226 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect } from "react";
+import Grid from "./../components/Grid";
+import Modal from "./../components/Modal";
+import Form from "./../components/Form";
+import Header from "./../components/Header";
+import Spinner from "./../components/Spinner";
+import { postForm, getEnv, fetchEventsByMonth } from "../utils/apiUtils";
+import { FormData, HttpResponse, Event } from "../types/types";
+
+const Page: React.FC = () => {
+  const [date, setDate] = useState<Date>(new Date());
+  const [eventsByDate, setEventsByDate] = useState<{ [key: number]: Event[] }>(
+    {}
+  );
+
+  // -----
+  // related to header next prev month
+  // -----
+  const handleNextClick = () => {
+    setDate((prevDate) => {
+      const nextMonth = prevDate.getMonth() + 1;
+      return new Date(prevDate.getFullYear(), nextMonth, 1);
+    });
+  };
+
+  const handlePrevClick = () => {
+    setDate((prevDate) => {
+      const prevMonth = prevDate.getMonth() - 1;
+      return new Date(prevDate.getFullYear(), prevMonth, 1);
+    });
+  };
+
+  // -----
+  // related to modal state and content
+  // -----
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [modalContent, setModalContent] = useState<React.ReactNode>(null);
+  const [selectedEvent, setSelectedEvent] = useState<string>("");
+  type ModalType = "info" | "warning" | "error" | "none";
+  const [modalType, setModalType] = useState<ModalType>("info");
+  const [modalText, setModalText] = useState<string>("");
+
+  const handleCreateClick = (date: Date) => {
+    setModalType("info");
+    setModalText("add new");
+    setModalContent(
+      <Form
+        form={{
+          description: "",
+          amount: "",
+          category: "",
+          type: "",
+          date: new Date(),
+          _id: "",
+        }}
+        selectedDate={date}
+        onError={handleError}
+        onSubmit={handleFormSubmit}
+      ></Form>
+    );
+    setIsModalOpen(true);
+  };
+
+  const handleEventClick = (id: string, date: Date) => {
+    setModalType("info");
+    setModalText("update");
+    setModalContent(
+      <Form
+        form={{
+          description: "",
+          amount: "",
+          category: "",
+          type: "",
+          date: new Date(),
+          _id: "",
+        }}
+        selectedDate={date}
+        selectedEvent={selectedEvent}
+        onError={handleError}
+        onSubmit={handleFormSubmit}
+      ></Form>
+    );
+    setSelectedEvent(id);
+    setIsModalOpen(true);
+  };
+
+  const handleError = (err: string) => {
+    setModalType("error");
+    setModalText("");
+    setModalContent(
+      <div className="flex justify-center items-center">{err}</div>
+    );
+    setIsModalOpen(true);
+  };
+
+  const handleModalLoading = () => {
+    setModalType("none");
+    setModalText("");
+    setModalContent(<Spinner></Spinner>);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalText("");
+    setIsModalOpen(false);
+  };
+
+  // -----
+  // form submit
+  // -----
+  const handleFormSubmit = (formData: FormData) => {
+    const signal = AbortSignal.timeout(
+      Number(getEnv(process.env.NEXT_PUBLIC_REQUEST_TIMEOUT))
+    );
+
+    postForm(formData, signal)
+      .then((response: HttpResponse) => {
+        if (response.is_error) {
+          handleError(response.message);
+        } else {
+          fetchEvents(signal);
+        }
+      })
+      .catch((err) => {
+        if (err != "AbortError") {
+          handleError(err.message);
+        }
+      });
+
+    handleModalClose();
+  };
+
+  const fetchEvents = (signal: AbortSignal) => {
+    fetchEventsByMonth(date.getFullYear(), date.getMonth() + 1, signal)
+      .then((response: HttpResponse) => {
+        let groupedEvents: { [key: number]: Event[] } = {};
+        const fetchedEvents = response.data as Event[];
+        if (fetchedEvents && fetchedEvents.length > 0) {
+          groupedEvents = fetchedEvents.reduce(
+            (acc: { [key: number]: Event[] }, event) => {
+              const eventDate = new Date(event.date);
+              const dayKey = eventDate.getDate();
+              if (!acc[dayKey]) acc[dayKey] = [];
+              acc[dayKey].push(event);
+              return acc;
+            },
+            {}
+          );
+        }
+        setEventsByDate(groupedEvents);
+      })
+      .catch((err) => {
+        handleError(String(err));
+      });
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeoutSignal = AbortSignal.timeout(
+      Number(getEnv(process.env.NEXT_PUBLIC_REQUEST_TIMEOUT))
+    );
+    const signal = AbortSignal.any([controller.signal, timeoutSignal]);
+    fetchEvents(signal);
+    return () => {
+      controller.abort();
+    };
+  }, [date.getMonth(), date.getFullYear()]);
+
+  // -----
+  // related to theme
+  // -----
+  const [theme, setTheme] = useState<string>("light");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
+  }, []);
+
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="flex flex-col h-screen fade-in">
+      <Header
+        onNext={handleNextClick}
+        onPrev={handlePrevClick}
+        onTheme={toggleTheme}
+        theme={theme}
+        date={date}
+      ></Header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <div className="flex-grow overflow-auto">
+        <Grid
+          selectedDate={date}
+          eventsByDate={eventsByDate}
+          onEventClick={handleEventClick}
+          onCreateClick={handleCreateClick}
+          onError={handleError}
+        />
+      </div>
+
+      <Modal
+        type={modalType}
+        text={modalText}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+      >
+        {modalContent}
+      </Modal>
     </div>
   );
-}
+};
+
+export default Page;
