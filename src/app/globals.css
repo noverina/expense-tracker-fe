@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url("https://fonts.googleapis.com/css2?family=Sigmar&display=swap");
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    @apply border-gray-400 dark:border-gray-600;
+  }
+}
+
 :root {
   --white: theme("colors.white");
   --white-50-opacity: rgba(255, 255, 255, 0.5);
@@ -29,7 +39,6 @@ body {
   background-color: var(--white);
   color: var(--black);
   transition: background-color 0.3s ease, color 0.3s ease;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 html.dark body {
@@ -59,66 +68,6 @@ html.dark .modal-container {
 
 html.dark .modal-backdrop {
   background-color: var(--white-50-opacity);
-}
-
-.modal-header-info {
-  background-color: var(--blue-400);
-}
-
-html.dark .modal-header-info {
-  background-color: var(--blue-600);
-}
-
-.modal-header-warning {
-  background-color: var(--yellow-400);
-}
-
-html.dark .modal-header-warning {
-  background-color: var(--yellow-600);
-}
-
-.modal-header-error {
-  background-color: var(--red-400);
-}
-
-html.dark .modal-header-error {
-  background-color: var(--red-600);
-}
-
-/* 
------
-SCROLLBAR
------
-*/
-
-/* webkit */
-::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-
-::-webkit-scrollbar-button {
-  width: 0px;
-  height: 0px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--gray-200);
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: var(--gray-700);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--gray-900);
-}
-
-/* firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--gray-200) var(--gray-700);
 }
 
 /* 
@@ -154,9 +103,9 @@ html.dark .item-current {
 
 html.dark .expense {
   background-color: var(--gray-900);
-  border-color: var(--red-200);
+  border-color: var(--red-400);
   transition: background-color 0.3s ease;
-  color: var(--red-200);
+  color: var(--red-400);
 }
 
 .expense:hover {
@@ -176,9 +125,9 @@ html.dark .expense:hover {
 
 html.dark .income {
   background-color: var(--gray-900);
-  border-color: var(--blue-200);
+  border-color: var(--blue-400);
   transition: background-color 0.3s ease;
-  color: var(--blue-200);
+  color: var(--blue-400);
 }
 
 .income:hover {
@@ -189,12 +138,70 @@ html.dark .income:hover {
   background-color: var(--blue-800);
 }
 
+.header {
+  background-color: var(--white);
+}
+
+html.dark .header {
+  background-color: var(--gray-900);
+}
+
 .weekday-header {
+  background-color: var(--white);
   border-color: var(--gray-900);
 }
 
 html.dark .weekday-header {
+  background-color: var(--gray-900);
   border-color: var(--white);
+} /* 
+-----
+INPUT 
+-----
+*/
+
+input[type="text"] {
+  color: var(--black);
+  background-color: var(--white);
+}
+
+html.dark input[type="text"] {
+  background-color: var(--gray-900);
+  color: var(--white);
+}
+
+input[type="date"] {
+  color: var(--black);
+  background-color: var(--white);
+}
+
+html.dark input[type="date"] {
+  background-color: var(--gray-900);
+  color: var(--white);
+}
+
+html.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+select {
+  color: var(--black);
+  background-color: var(--white);
+}
+
+html.dark select {
+  background-color: var(--gray-900);
+  color: var(--white);
+}
+
+textarea {
+  color: var(--black);
+  background-color: var(--white);
+}
+
+html.dark textarea {
+  background-color: var(--gray-900);
+  color: var(--white);
 }
 
 /* 
@@ -202,16 +209,6 @@ html.dark .weekday-header {
 BUTTON
 -----
 */
-
-.close-button {
-  background-color: var(--white);
-  color: var(--black);
-}
-
-html.dark .close-button {
-  background-color: var(--gray-900);
-  color: var(--white);
-}
 
 .bg-button {
   background-color: var(--gray-900);
@@ -235,6 +232,91 @@ html.dark .bg-button:hover {
   color: var(--black);
 }
 
+button[type="submit"] {
+  background-color: var(--gray-900);
+  transition: background-color 0.3s ease;
+  color: var(--white);
+}
+
+html.dark button[type="submit"] {
+  background-color: var(--white);
+  transition: background-color 0.3s ease;
+  color: var(--black);
+}
+
+button[type="submit"]:hover {
+  background-color: var(--gray-700);
+  color: var(--white);
+}
+
+html.dark button[type="submit"]:hover {
+  background-color: var(--gray-200);
+  color: var(--black);
+}
+
+button[type="reset"] {
+  background-color: var(--white);
+  transition: background-color 0.3s ease;
+  color: var(--black);
+  border-color: var(--gray-900);
+}
+
+html.dark button[type="reset"] {
+  background-color: var(--gray-900);
+  transition: background-color 0.3s ease;
+  color: var(--gray-200);
+  border-color: var(--gray-200);
+}
+
+button[type="reset"]:hover {
+  background-color: var(--gray-200);
+  color: var(--black);
+}
+
+html.dark button[type="reset"]:hover {
+  background-color: var(--gray-700);
+  color: var(--white);
+}
+
+/* 
+-----
+ANIMATION
+-----
+*/
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fadeIn 0.3s ease-in forwards;
+}
+
+@keyframes slideDown {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-down {
+  animation: slideDown 0.3s ease-in-out forwards;
+}
+
+/* 
+-----
+MISC
+-----
+*/
+
 label.required::after {
   content: "*";
   color: var(--red-500);
@@ -249,16 +331,4 @@ label.required::after {
 html.dark .spinner {
   color: var(--white);
   fill: var(--gray-700);
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.fade-in {
-  animation: fadeIn 0.5s ease-in forwards;
 }

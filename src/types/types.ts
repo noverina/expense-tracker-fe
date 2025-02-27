@@ -26,3 +26,14 @@ export interface Event {
   date: string;
   amount: string;
 }
+
+export interface Stats {
+  type: "income" | "expense";
+  sum: string;
+  categories: Category[];
+}
+
+interface Category {
+  category: string;
+  sum: string;
+}

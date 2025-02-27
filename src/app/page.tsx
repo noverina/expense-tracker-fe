@@ -5,11 +5,16 @@ import Grid from "./../components/Grid";
 import Modal from "./../components/Modal";
 import Form from "./../components/Form";
 import Header from "./../components/Header";
+import Stat from "./../components/Stat";
 import Spinner from "./../components/Spinner";
+import "react-perfect-scrollbar/dist/css/styles.css";
+import PerfectScrollbar from "react-perfect-scrollbar";
 import { postForm, getEnv, fetchEventsByMonth } from "../utils/apiUtils";
+import { getMonthName } from "./../utils/dateUtils";
 import { FormData, HttpResponse, Event } from "../types/types";
 
 const Page: React.FC = () => {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [date, setDate] = useState<Date>(new Date());
   const [eventsByDate, setEventsByDate] = useState<{ [key: number]: Event[] }>(
     {}
@@ -37,14 +42,15 @@ const Page: React.FC = () => {
   // -----
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
-  const [selectedEvent, setSelectedEvent] = useState<string>("");
   type ModalType = "info" | "warning" | "error" | "none";
   const [modalType, setModalType] = useState<ModalType>("info");
   const [modalText, setModalText] = useState<string>("");
+  const [isClosable, setIsClosable] = useState<boolean>(false);
 
   const handleCreateClick = (date: Date) => {
     setModalType("info");
-    setModalText("add new");
+    setModalText("Creating new event");
+
     setModalContent(
       <Form
         form={{
@@ -58,14 +64,16 @@ const Page: React.FC = () => {
         selectedDate={date}
         onError={handleError}
         onSubmit={handleFormSubmit}
-      ></Form>
+        closable={setIsClosable}
+      />
     );
+
     setIsModalOpen(true);
   };
 
   const handleEventClick = (id: string, date: Date) => {
     setModalType("info");
-    setModalText("update");
+    setModalText("Updating event");
     setModalContent(
       <Form
         form={{
@@ -77,28 +85,36 @@ const Page: React.FC = () => {
           _id: "",
         }}
         selectedDate={date}
-        selectedEvent={selectedEvent}
+        selectedEvent={id}
         onError={handleError}
         onSubmit={handleFormSubmit}
-      ></Form>
+        closable={setIsClosable}
+      />
     );
-    setSelectedEvent(id);
+
+    setIsModalOpen(true);
+  };
+
+  const handleStatsClick = (year: number, month: number) => {
+    setModalType("info");
+    setModalText("Statistics for " + getMonthName(month) + " " + year);
+    setModalContent(
+      <Stat year={year} month={month} setIsClosable={setIsClosable} />
+    );
+
     setIsModalOpen(true);
   };
 
   const handleError = (err: string) => {
     setModalType("error");
-    setModalText("");
+    setIsClosable(true);
+    setModalText("Uh oh! :(");
     setModalContent(
-      <div className="flex justify-center items-center">{err}</div>
+      <div className="flex justify-center items-center">
+        Something unexpected occured
+      </div>
     );
-    setIsModalOpen(true);
-  };
-
-  const handleModalLoading = () => {
-    setModalType("none");
-    setModalText("");
-    setModalContent(<Spinner></Spinner>);
+    console.log(err);
     setIsModalOpen(true);
   };
 
@@ -133,6 +149,7 @@ const Page: React.FC = () => {
   };
 
   const fetchEvents = (signal: AbortSignal) => {
+    setIsLoading(true);
     fetchEventsByMonth(date.getFullYear(), date.getMonth() + 1, signal)
       .then((response: HttpResponse) => {
         let groupedEvents: { [key: number]: Event[] } = {};
@@ -153,6 +170,9 @@ const Page: React.FC = () => {
       })
       .catch((err) => {
         handleError(String(err));
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   };
 
@@ -191,31 +211,49 @@ const Page: React.FC = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
+  // TODO delete this test later
+  // const test = () => {
+  //   handleError("test error");
+  // };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Spinner />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen fade-in">
+      {/* <button onClick={test}>click me!</button> */}
       <Header
         onNext={handleNextClick}
         onPrev={handlePrevClick}
         onTheme={toggleTheme}
+        onStats={handleStatsClick}
         theme={theme}
         date={date}
       ></Header>
 
-      <div className="flex-grow overflow-auto">
-        <Grid
-          selectedDate={date}
-          eventsByDate={eventsByDate}
-          onEventClick={handleEventClick}
-          onCreateClick={handleCreateClick}
-          onError={handleError}
-        />
-      </div>
+      <PerfectScrollbar>
+        <div className="flex-grow">
+          <Grid
+            selectedDate={date}
+            eventsByDate={eventsByDate}
+            onEventClick={handleEventClick}
+            onCreateClick={handleCreateClick}
+            onError={handleError}
+          />
+        </div>
+      </PerfectScrollbar>
 
       <Modal
         type={modalType}
         text={modalText}
         isOpen={isModalOpen}
         onClose={handleModalClose}
+        isClosable={isClosable}
       >
         {modalContent}
       </Modal>

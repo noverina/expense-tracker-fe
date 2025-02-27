@@ -7,6 +7,7 @@ interface HeaderProps {
   onNext: () => void;
   onPrev: () => void;
   onTheme: () => void;
+  onStats: (year: number, month: number) => void;
   theme: string;
   date: Date;
 }
@@ -15,12 +16,15 @@ const Header: React.FC<HeaderProps> = ({
   onNext,
   onPrev,
   onTheme,
+  onStats,
   theme,
   date,
 }) => {
   const [dateTime, setDateTime] = useState<Date | null>(null);
+
   const year = date.getFullYear();
-  const month = getMonthName(date.getMonth());
+  const month = date.getMonth();
+  const monthName = getMonthName(date.getMonth());
 
   useEffect(() => {
     setDateTime(new Date());
@@ -32,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <div className="flex justify-between items-center sticky top-0 h-10 px-4 py-6">
+    <div className="flex flex-col lg:flex-row justify-between items-center sticky top-0 h-30 lg:h-10 px-4 py-6 z-20 header">
       {/* theme toggle */}
       <div className="flex flex-row gap-4 items-center justify-center">
         <button
@@ -55,28 +59,23 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-row gap-2">
-        <span className="material-symbols-outlined text-base font-bold">
-          arrow_circle_up
-        </span>
-        <span>Income</span>
-        <span>100,000,000,000</span>
-        <span className="material-symbols-outlined text-base font-bold">
-          arrow_circle_down
-        </span>
-        <span>Expense</span>
-        <span>100,000,000,000</span>
-      </div>
-
       {/* month change button */}
       <div className="flex flex-row gap-4">
+        <span
+          className="material-symbols-outlined w-6 h-6 rounded-full flex items-center justify-center bg-button cursor-pointer text-sm"
+          title="statistics for this month"
+          onClick={() => onStats(year, month)}
+        >
+          bar_chart
+        </span>
         <span>
-          {month} {year}
+          {monthName} {year}
         </span>
 
         <button
           onClick={onPrev}
           className="w-6 h-6 rounded-full flex items-center justify-center bg-button"
+          title="previous month"
         >
           <span className="material-symbols-outlined text-base font-bold">
             chevron_left
@@ -85,6 +84,7 @@ const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onNext}
           className="w-6 h-6 rounded-full flex items-center justify-center bg-button"
+          title="next month"
         >
           <span className="material-symbols-outlined text-base font-bold">
             chevron_right

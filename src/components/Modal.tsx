@@ -1,9 +1,12 @@
 import React, { useEffect, useRef } from "react";
+import "react-perfect-scrollbar/dist/css/styles.css";
+import PerfectScrollbar from "react-perfect-scrollbar";
 
 interface ModalProps {
   type: "info" | "warning" | "error" | "none";
   text?: string;
   isOpen: boolean;
+  isClosable: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }
@@ -12,19 +15,15 @@ const Modal: React.FC<ModalProps> = ({
   type,
   text,
   isOpen,
+  isClosable,
   onClose,
   children,
 }) => {
-  console.log(type);
   const header = `modal-header-${type}`;
+  const typeIcon = type == "error" ? "report" : type;
   const modalRef = useRef<HTMLDivElement>(null);
 
-  const headerText =
-    text && text != ""
-      ? text.toUpperCase()
-      : type == "none"
-      ? ""
-      : type.toUpperCase();
+  const headerText = text ? text : "";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,31 +45,44 @@ const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
+    // modal backdrop
     <div
-      className={`fixed inset-0 flex items-center justify-center w-full h-full modal-backdrop ${
-        type != "none" ? "cursor-pointer" : "cursor-default"
+      className={`fixed inset-0 flex items-center justify-center w-full h-full modal-backdrop z-30 fade-in ${
+        isClosable ? "cursor-pointer" : "cursor-default"
       }`}
     >
+      {/* modal container */}
+
       <div
-        ref={type == "none" ? undefined : modalRef}
-        className="relative rounded-lg shadow-lg modal-container cursor-auto"
+        ref={isClosable ? modalRef : undefined}
+        className="flex flex-col relative rounded-lg shadow-lg modal-container p-2 cursor-auto max-h-screen"
+        style={{ maxHeight: isClosable ? `calc(100vh - 4rem)` : `100vh` }}
       >
-        {type != "none" && (
+        {/* modal header */}
+        {isClosable && (
           <div
-            className={`${header} flex justify-between h-16 items-center p-2`}
+            className={`${header} flex justify-between h-16 items-center p-2 border-b-2 gap-2`}
           >
-            <span className="material-symbols-outlined">{type}</span>
+            <div className="material-symbols-outlined">{typeIcon}</div>
             <div className={`flex-grow p-2`}>{headerText}</div>
             <button
               onClick={onClose}
-              className="close-button rounded-full flex-shrink-0 w-8 text-2xl font-bold"
+              className="rounded-full flex-shrink-0 w-8 text-2xl font-bold bg-button"
               aria-label="Close"
             >
               &times;
             </button>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        {/* modal content */}
+        <PerfectScrollbar options={{ suppressScrollX: true }}>
+          <div
+            className="p-6"
+            style={{ maxHeight: isClosable ? `calc(100vh - 10rem)` : `100vh` }}
+          >
+            {children}
+          </div>
+        </PerfectScrollbar>
       </div>
     </div>
   );
