@@ -232,6 +232,20 @@ html.dark .bg-button:hover {
   color: var(--black);
 }
 
+.bg-button:disabled {
+  cursor: not-allowed;
+  background-color: var(--gray-700);
+  color: var(--white);
+  opacity: 0.5;
+}
+
+html.dark .bg-button:disabled {
+  cursor: not-allowed;
+  background-color: var(--gray-200);
+  color: var(--black);
+  opacity: 0.5;
+}
+
 button[type="submit"] {
   background-color: var(--gray-900);
   transition: background-color 0.3s ease;

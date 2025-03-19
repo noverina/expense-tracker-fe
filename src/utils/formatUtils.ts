@@ -5,10 +5,6 @@ export const formatDateHTML = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-export const formatDateISO = (date: Date): string => {
-  return date.toISOString();
-};
-
 export const formatAmount = (value: string): string => {
   // get rid of non-digit non period character
   let cleaned = value.replace(/[^0-9.]/g, "");

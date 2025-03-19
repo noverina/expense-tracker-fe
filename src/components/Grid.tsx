@@ -48,7 +48,7 @@ const Grid: React.FC<GridProps> = ({
 
   const lastDateOfMonth = new Date(
     selectedDate.getFullYear(),
-    selectedDate.getMonth(),
+    selectedDate.getMonth() + 1,
     0
   ).getDate();
   const firstDayOfMonth = new Date(

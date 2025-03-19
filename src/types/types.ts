@@ -1,9 +1,18 @@
 export interface FormData {
   description: string;
   amount: string;
-  type: string;
+  type: "income" | "expense";
   category: string;
   date: Date;
+  _id: string;
+}
+
+export interface FormDataRequest {
+  description: string;
+  amount: string;
+  type: "income" | "expense";
+  category: string;
+  date: string;
   _id: string;
 }
 
@@ -21,7 +30,7 @@ export interface HttpResponse {
 export interface Event {
   _id: string;
   description: string;
-  type: string;
+  type: "income" | "expense";
   category: string;
   date: string;
   amount: string;

@@ -9,7 +9,6 @@ import Stat from "./../components/Stat";
 import Spinner from "./../components/Spinner";
 import "react-perfect-scrollbar/dist/css/styles.css";
 import PerfectScrollbar from "react-perfect-scrollbar";
-import { postForm, getEnv, fetchEventsByMonth } from "../utils/apiUtils";
 import { getMonthName } from "./../utils/dateUtils";
 import { FormData, HttpResponse, Event } from "../types/types";
 
@@ -57,18 +56,19 @@ const Page: React.FC = () => {
           description: "",
           amount: "",
           category: "",
-          type: "",
+          type: "income",
           date: new Date(),
           _id: "",
         }}
         selectedDate={date}
         onError={handleError}
+        onWarn={handleWarn}
         onSubmit={handleFormSubmit}
         closable={setIsClosable}
       />
     );
 
-    setIsModalOpen(true);
+    setIsModalOpen((prev) => !prev);
   };
 
   const handleEventClick = (id: string, date: Date) => {
@@ -80,29 +80,36 @@ const Page: React.FC = () => {
           description: "",
           amount: "",
           category: "",
-          type: "",
+          type: "income",
           date: new Date(),
           _id: "",
         }}
         selectedDate={date}
         selectedEvent={id}
         onError={handleError}
+        onWarn={handleWarn}
         onSubmit={handleFormSubmit}
         closable={setIsClosable}
       />
     );
 
-    setIsModalOpen(true);
+    setIsModalOpen((prev) => !prev);
   };
 
   const handleStatsClick = (year: number, month: number) => {
     setModalType("info");
     setModalText("Statistics for " + getMonthName(month) + " " + year);
     setModalContent(
-      <Stat year={year} month={month} setIsClosable={setIsClosable} />
+      <Stat
+        year={year}
+        month={month}
+        setIsClosable={setIsClosable}
+        onError={handleError}
+        onWarn={handleWarn}
+      />
     );
 
-    setIsModalOpen(true);
+    setIsModalOpen((prev) => !prev);
   };
 
   const handleError = (err: string) => {
@@ -110,12 +117,18 @@ const Page: React.FC = () => {
     setIsClosable(true);
     setModalText("Uh oh! :(");
     setModalContent(
-      <div className="flex justify-center items-center">
-        Something unexpected occured
-      </div>
+      <div className="flex items-center">Something unexpected occured</div>
     );
     console.log(err);
-    setIsModalOpen(true);
+    setIsModalOpen((prev) => !prev);
+  };
+
+  const handleWarn = (header: string, msg: string) => {
+    setModalType("warning");
+    setIsClosable(true);
+    setModalText(header);
+    setModalContent(<div className="flex items-center">{msg}</div>);
+    setIsModalOpen((prev) => !prev);
   };
 
   const handleModalClose = () => {
@@ -126,63 +139,109 @@ const Page: React.FC = () => {
   // -----
   // form submit
   // -----
-  const handleFormSubmit = (formData: FormData) => {
-    const signal = AbortSignal.timeout(
-      Number(getEnv(process.env.NEXT_PUBLIC_REQUEST_TIMEOUT))
-    );
+  const handleFormSubmit = async (formData: FormData) => {
+    try {
+      setIsLoading(true);
+      const timeout = process.env.NEXT_PUBLIC_REQUEST_TIMEOUT;
+      if (timeout == undefined) handleError("unable to load .env");
 
-    postForm(formData, signal)
-      .then((response: HttpResponse) => {
-        if (response.is_error) {
-          handleError(response.message);
-        } else {
-          fetchEvents(signal);
-        }
-      })
-      .catch((err) => {
-        if (err != "AbortError") {
-          handleError(err.message);
-        }
+      const signal = AbortSignal.timeout(Number(timeout));
+
+      const response = await fetch("/api/form", {
+        method: "POST",
+        signal: signal,
+        body: JSON.stringify(formData),
       });
 
-    handleModalClose();
+      const data: HttpResponse = await response.json();
+      if (data.is_error || !response.ok) {
+        if (data.message == "event limit") {
+          const limit = process.env.NEXT_PUBLIC_EVENT_LIMIT;
+          if (limit == undefined) handleError("Unable to load .env");
+          handleWarn(
+            "Limit reached",
+            `Unable to add new - max. ${limit} in a day`
+          );
+        } else {
+          handleError(data.message);
+        }
+      } else {
+        fetchEvents(signal);
+      }
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        (err.name == "TimeoutError" || err.name == "AbortError")
+      )
+        handleWarn("Request timed out", "Please try again");
+      else if (err instanceof Error) handleError(err.message);
+    } finally {
+      setIsLoading(false);
+      handleModalClose();
+    }
   };
 
-  const fetchEvents = (signal: AbortSignal) => {
-    setIsLoading(true);
-    fetchEventsByMonth(date.getFullYear(), date.getMonth() + 1, signal)
-      .then((response: HttpResponse) => {
-        let groupedEvents: { [key: number]: Event[] } = {};
-        const fetchedEvents = response.data as Event[];
-        if (fetchedEvents && fetchedEvents.length > 0) {
-          groupedEvents = fetchedEvents.reduce(
-            (acc: { [key: number]: Event[] }, event) => {
-              const eventDate = new Date(event.date);
-              const dayKey = eventDate.getDate();
-              if (!acc[dayKey]) acc[dayKey] = [];
-              acc[dayKey].push(event);
-              return acc;
-            },
-            {}
-          );
-        }
-        setEventsByDate(groupedEvents);
-      })
-      .catch((err) => {
-        handleError(String(err));
-      })
-      .finally(() => {
-        setIsLoading(false);
+  const fetchEvents = async (signal: AbortSignal) => {
+    try {
+      setIsLoading(true);
+      const queryParams = new URLSearchParams({
+        year: date.getFullYear().toString(),
+        month: (date.getMonth() + 1).toString(),
       });
+      const url = `/api/month?${queryParams.toString()}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        signal: signal,
+      });
+
+      let groupedEvents: { [key: number]: Event[] } = {};
+      const httpRes: HttpResponse = await response.json();
+      const fetchedEvents = httpRes.data as Event[];
+      if (fetchedEvents && fetchedEvents.length > 0) {
+        fetchedEvents.sort((a, b) => b.type.localeCompare(a.type));
+        groupedEvents = fetchedEvents.reduce(
+          (acc: { [key: number]: Event[] }, event) => {
+            const eventDate = new Date(event.date);
+            const dayKey = eventDate.getDate();
+            if (!acc[dayKey]) acc[dayKey] = [];
+            acc[dayKey].push(event);
+            return acc;
+          },
+          {}
+        );
+      }
+      setEventsByDate(groupedEvents);
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        (err.name == "TimeoutError" || err.name == "AbortError")
+      )
+        handleWarn("Request timed out", "Please try again");
+      else if (err instanceof Error) handleError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     const controller = new AbortController();
-    const timeoutSignal = AbortSignal.timeout(
-      Number(getEnv(process.env.NEXT_PUBLIC_REQUEST_TIMEOUT))
-    );
+    const timeout = process.env.NEXT_PUBLIC_REQUEST_TIMEOUT;
+    if (timeout == undefined) handleError("unable to load .env");
+    const timeoutSignal = AbortSignal.timeout(Number(timeout));
     const signal = AbortSignal.any([controller.signal, timeoutSignal]);
-    fetchEvents(signal);
+    try {
+      fetchEvents(signal);
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        (err.name == "TimeoutError" || err.name == "AbortError")
+      )
+        handleWarn("Request timed out", "Please try again");
+      else if (err instanceof Error) handleError(err.message);
+      controller.abort();
+    }
+
     return () => {
       controller.abort();
     };
@@ -211,14 +270,9 @@ const Page: React.FC = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
-  // TODO delete this test later
-  // const test = () => {
-  //   handleError("test error");
-  // };
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen fade-in">
         <Spinner />
       </div>
     );
@@ -226,8 +280,8 @@ const Page: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen fade-in">
-      {/* <button onClick={test}>click me!</button> */}
       <Header
+        onError={handleError}
         onNext={handleNextClick}
         onPrev={handlePrevClick}
         onTheme={toggleTheme}

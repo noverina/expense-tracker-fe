@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { getMonthName } from "./../utils/dateUtils";
 
 interface HeaderProps {
+  onError: (err: string) => void;
   onNext: () => void;
   onPrev: () => void;
   onTheme: () => void;
@@ -13,6 +14,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({
+  onError,
   onNext,
   onPrev,
   onTheme,
@@ -21,16 +23,53 @@ const Header: React.FC<HeaderProps> = ({
   date,
 }) => {
   const [dateTime, setDateTime] = useState<Date | null>(null);
+  const [isPrevAble, setIsPrevAble] = useState<boolean>(false);
+  const [isNextAble, setIsNextAble] = useState<boolean>(false);
 
   const year = date.getFullYear();
   const month = date.getMonth();
   const monthName = getMonthName(date.getMonth());
+
+  const isDateWithinMinRange = (): boolean => {
+    const monthRange = Number(process.env.NEXT_PUBLIC_MONTH_RANGE_LIMIT || "0");
+    if (monthRange == 0) {
+      onError("unable to load .env");
+    }
+    const checkedDate = new Date(year, month, 1);
+    const currentDate = new Date();
+    const minDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() - monthRange,
+      1
+    );
+    return checkedDate <= minDate;
+  };
+
+  const isDateWithinMaxRange = (): boolean => {
+    const monthRange = Number(process.env.NEXT_PUBLIC_MONTH_RANGE_LIMIT || "0");
+    if (monthRange == 0) {
+      onError("unable to load .env");
+    }
+    const checkedDate = new Date(year, month, 1);
+    const currentDate = new Date();
+    const maxDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + monthRange,
+      1
+    );
+    return checkedDate >= maxDate;
+  };
 
   useEffect(() => {
     setDateTime(new Date());
     const interval = setInterval(() => {
       setDateTime(new Date());
     }, 1000);
+
+    if (isDateWithinMinRange()) setIsPrevAble(true);
+    else setIsPrevAble(false);
+    if (isDateWithinMaxRange()) setIsNextAble(true);
+    else setIsNextAble(false);
 
     return () => clearInterval(interval);
   }, []);
@@ -76,6 +115,7 @@ const Header: React.FC<HeaderProps> = ({
           onClick={onPrev}
           className="w-6 h-6 rounded-full flex items-center justify-center bg-button"
           title="previous month"
+          disabled={isPrevAble}
         >
           <span className="material-symbols-outlined text-base font-bold">
             chevron_left
@@ -85,6 +125,7 @@ const Header: React.FC<HeaderProps> = ({
           onClick={onNext}
           className="w-6 h-6 rounded-full flex items-center justify-center bg-button"
           title="next month"
+          disabled={isNextAble}
         >
           <span className="material-symbols-outlined text-base font-bold">
             chevron_right
