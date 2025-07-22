@@ -117,9 +117,10 @@ const Page: React.FC = () => {
     setIsClosable(true);
     setModalText("Uh oh! :(");
     setModalContent(
-      <div className="flex items-center">Something unexpected occured</div>
+      <div className="flex items-center">
+        Something unexpected occured. Please try again later.
+      </div>
     );
-    console.log(err);
     setIsModalOpen((prev) => !prev);
   };
 
@@ -255,6 +256,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "light";
     setTheme(savedTheme);
+    document.title = "Expense Tracker";
   }, []);
 
   useEffect(() => {

@@ -102,7 +102,7 @@ const Grid: React.FC<GridProps> = ({
                 return (
                   <div
                     key={`${weekIndex}-${dayIndex}`}
-                    className={`flex flex-col w-full h-[100px] lg:h-[150px]  ${
+                    className={`flex flex-col w-full h-[100px] lg:h-[150px] rounded-md  ${
                       isCurrentDate(date)
                         ? "item-current border border-dotted"
                         : date !== 0
