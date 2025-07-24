@@ -122,6 +122,15 @@ const Page: React.FC = () => {
       </div>
     );
     setIsModalOpen((prev) => !prev);
+    const errorLog = {
+      timestamp: new Date().toISOString(),
+      message: err,
+    };
+    const existingLogs = JSON.parse(
+      sessionStorage.getItem("errorLogs") || "[]"
+    );
+    existingLogs.push(errorLog);
+    sessionStorage.setItem("errorLogs", JSON.stringify(existingLogs));
   };
 
   const handleWarn = (header: string, msg: string) => {
